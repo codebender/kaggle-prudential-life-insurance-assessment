@@ -97,7 +97,7 @@ xgb.plot.importance(importance_matrix)
 clf <- xgboost(data        = data.matrix(train[,feature.names]),
                label       = train$Response,
                eta         = 0.025,
-               depth       = 25,
+               depth       = 20,
                nrounds     = 4000,
                objective   = "reg:linear",
                eval_metric = "rmse",
@@ -114,4 +114,4 @@ submission$Response <- as.integer(round(predict(clf, data.matrix(test[,feature.n
 submission[submission$Response < 1, "Response"] <- 1
 submission[submission$Response > 8, "Response"] <- 8
 
-write_csv(submission, "../submissions/xgboost_starter_3.csv")
+write_csv(submission, "../submissions/xgboost_starter_4.csv")
