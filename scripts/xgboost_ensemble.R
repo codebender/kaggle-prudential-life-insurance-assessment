@@ -42,34 +42,36 @@ y = as.integer(y)-1
 
 clfSoft <- xgboost(data        = data.matrix(train[,feature.names]),
                    label       = y,
-                   eta         = 0.025,
-                   depth       = 22,
-                   nrounds     = 4200,
+                   eta         = 0.02,
+                   depth       = 21,
+                   nrounds     = 4500,
                    objective   = "multi:softmax",
                    eval_metric = "mlogloss",
                    num_class   = 8,
-                   colsample_bytree = 0.7,
+                   colsample_bytree = 0.65,
                    min_child_weight = 3,
-                   subsample = 0.7)
+                   subsample = 0.73)
 
 predictions <- data.frame(Id=test$Id)
 predictions$ResponseSoft <- predict(clfSoft, data.matrix(test[,feature.names])) + 1
 
 clfLinear <- xgboost(data        = data.matrix(train[,feature.names]),
                      label       = train$Response,
-                     eta         = 0.025,
-                     depth       = 22,
-                     nrounds     = 4200,
+                     eta         = 0.02,
+                     depth       = 21,
+                     nrounds     = 4500,
                      objective   = "reg:linear",
                      eval_metric = "rmse",
-                     colsample_bytree = 0.7,
+                     colsample_bytree = 0.65,
                      min_child_weight = 3,
-                     subsample = 0.7)
+                     subsample = 0.73)
 predictions$ResponseLinear <- as.integer(round(predict(clfLinear, data.matrix(test[,feature.names]))))
 predictions[predictions$ResponseLinear < 1, "ResponseLinear"] <- 1
 predictions[predictions$ResponseLinear > 8, "ResponseLinear"] <- 8
 
 submission <- data.frame(Id=test$Id)
-submission$Response <- as.integer(round((predictions$ResponseLinear+ predictions$ResponseSoft)/2))
+submission$Response <- as.integer(round((0.7*predictions$ResponseLinear+ 0.3*predictions$ResponseSoft)))
 
-write_csv(submission, "../submissions/xgboost_ensemble_2.csv")
+submission[submission$Response==3,"Response"] <- 2
+
+write_csv(submission, "../submissions/xgboost_ensemble_6.csv")

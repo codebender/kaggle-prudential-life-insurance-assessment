@@ -86,5 +86,6 @@ xgb.plot.importance(importance_matrix[1:20,])
 
 submission <- data.frame(Id=test$Id)
 submission$Response <- predict(clf, data.matrix(test[,feature.names])) + 1
+submission[submission$Response==3,"Response"] <- 2
 
-write_csv(submission, "../submissions/xgboost_softmax_2.csv")
+write_csv(submission, "../submissions/xgboost_softmax_5.csv")
