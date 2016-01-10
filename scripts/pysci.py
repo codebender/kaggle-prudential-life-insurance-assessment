@@ -15,12 +15,12 @@ def get_params():
 
     params = {}
     params["objective"] = "reg:linear"
-    params["eta"] = 0.05
-    params["min_child_weight"] = 20
-    params["subsample"] = 0.5
-    params["colsample_bytree"] = 0.30
+    params["eta"] = 0.02
+    params["min_child_weight"] = 3
+    params["subsample"] = 0.7
+    params["colsample_bytree"] = 0.65
     params["silent"] = 1
-    params["max_depth"] = 7
+    params["max_depth"] = 21
     plst = list(params.items())
 
     return plst
@@ -33,7 +33,7 @@ def apply_offset(data, bin_offset, sv, scorer=eval_wrapper):
 
 # global variables
 columns_to_drop = ['Id', 'Response']
-xgb_num_rounds = 475#450
+xgb_num_rounds = 4500
 num_classes = 8
 
 print("Load the data using pandas")
@@ -94,4 +94,4 @@ final_test_preds = np.round(np.clip(data[1], 1, 8)).astype(int)
 
 preds_out = pd.DataFrame({"Id": test['Id'].values, "Response": final_test_preds})
 preds_out = preds_out.set_index('Id')
-preds_out.to_csv('../submissions/xgb_offset_submission_475.csv')
+preds_out.to_csv('../submissions/xgb_21_3_4500.csv')
