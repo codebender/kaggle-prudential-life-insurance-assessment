@@ -15,12 +15,12 @@ def get_params():
 
     params = {}
     params["objective"] = "reg:linear"
-    params["eta"] = 0.02
-    params["min_child_weight"] = 3
-    params["subsample"] = 0.7
-    params["colsample_bytree"] = 0.65
+    params["eta"] = 0.05
+    params["min_child_weight"] = 240
+    params["subsample"] = 1
+    params["colsample_bytree"] = 0.67
     params["silent"] = 1
-    params["max_depth"] = 21
+    params["max_depth"] = 7
     plst = list(params.items())
 
     return plst
@@ -32,9 +32,11 @@ def apply_offset(data, bin_offset, sv, scorer=eval_wrapper):
     return score
 
 # global variables
-columns_to_drop = ['Id', 'Response']
-xgb_num_rounds = 4500
+columns_to_drop = ['Id', 'Response', 'Medical_History_10','Medical_History_24']
+xgb_num_rounds = 700
 num_classes = 8
+eta_list = [0.05] * 200
+eta_list = eta_list + [0.02] * 500
 
 print("Load the data using pandas")
 train = pd.read_csv("../input/train.csv")
@@ -43,8 +45,20 @@ test = pd.read_csv("../input/test.csv")
 # combine train and test
 all_data = train.append(test)
 
+# Found at https://www.kaggle.com/marcellonegro/prudential-life-insurance-assessment/xgb-offset0501/run/137585/code
+# create any new variables
+all_data['Product_Info_2_char'] = all_data.Product_Info_2.str[0]
+all_data['Product_Info_2_num'] = all_data.Product_Info_2.str[1]
+
 # factorize categorical variables
 all_data['Product_Info_2'] = pd.factorize(all_data['Product_Info_2'])[0]
+all_data['Product_Info_2_char'] = pd.factorize(all_data['Product_Info_2_char'])[0]
+all_data['Product_Info_2_num'] = pd.factorize(all_data['Product_Info_2_num'])[0]
+
+all_data['BMI_Age'] = all_data['BMI'] * all_data['Ins_Age']
+
+med_keyword_columns = all_data.columns[all_data.columns.str.startswith('Medical_Keyword_')]
+all_data['Med_Keywords_Count'] = all_data[med_keyword_columns].sum(axis=1)
 
 print('Eliminate missing values')
 # Use -1 for any others
@@ -52,9 +66,6 @@ all_data.fillna(-1, inplace=True)
 
 # fix the dtype on the label column
 all_data['Response'] = all_data['Response'].astype(int)
-
-# Provide split column
-all_data['Split'] = np.random.randint(5, size=all_data.shape[0])
 
 # split train and test
 train = all_data[all_data['Response']>0].copy()
@@ -69,7 +80,7 @@ plst = get_params()
 print(plst)
 
 # train model
-model = xgb.train(plst, xgtrain, xgb_num_rounds)
+model = xgb.train(plst, xgtrain, xgb_num_rounds, learning_rates=eta_list)
 
 # get preds
 train_preds = model.predict(xgtrain, ntree_limit=model.best_iteration)
@@ -79,10 +90,12 @@ train_preds = np.clip(train_preds, -0.99, 8.99)
 test_preds = np.clip(test_preds, -0.99, 8.99)
 
 # train offsets
-offsets = np.ones(num_classes) * -0.5
-offset_train_preds = np.vstack((train_preds, train_preds, train['Response'].values))
+offsets = np.array([0.1, -1, -2, -1, -0.8, 0.02, 0.8, 1])
+data = np.vstack((train_preds, train_preds, train['Response'].values))
 for j in range(num_classes):
-    train_offset = lambda x: -apply_offset(offset_train_preds, x, j)
+    data[1, data[0].astype(int)==j] = data[0, data[0].astype(int)==j] + offsets[j]
+for j in range(num_classes):
+    train_offset = lambda x: -apply_offset(data, x, j)
     offsets[j] = fmin_powell(train_offset, offsets[j])
 
 # apply offsets to test
@@ -94,4 +107,4 @@ final_test_preds = np.round(np.clip(data[1], 1, 8)).astype(int)
 
 preds_out = pd.DataFrame({"Id": test['Id'].values, "Response": final_test_preds})
 preds_out = preds_out.set_index('Id')
-preds_out.to_csv('../submissions/xgb_21_3_4500.csv')
+preds_out.to_csv('../submissions/xgb_240_7_700.csv')
