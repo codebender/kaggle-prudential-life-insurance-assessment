@@ -17,10 +17,10 @@ def get_params():
     params["objective"] = "reg:linear"
     params["eta"] = 0.05
     params["min_child_weight"] = 240
-    params["subsample"] = 1
+    params["subsample"] = 0.9
     params["colsample_bytree"] = 0.67
     params["silent"] = 1
-    params["max_depth"] = 7
+    params["max_depth"] = 6
     plst = list(params.items())
 
     return plst
@@ -107,4 +107,4 @@ final_test_preds = np.round(np.clip(data[1], 1, 8)).astype(int)
 
 preds_out = pd.DataFrame({"Id": test['Id'].values, "Response": final_test_preds})
 preds_out = preds_out.set_index('Id')
-preds_out.to_csv('../submissions/xgb_240_7_700.csv')
+preds_out.to_csv('../submissions/xgb_again_240_6_700.csv')
